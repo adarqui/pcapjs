@@ -2,7 +2,7 @@ https://github.com/adarqui/pcapjs
 
 pcapjs is a node.js pcap module which uses libuv for eventing i/o. I've used node_pcap (https://github.com/mranney/node_pcap) by mranney in a few of my projects. Due to the fact that node.js phased out IOWatcher and node_pcap didn't support multiple pcap sessions, I wrote this. Why not fork node_pcap? Well, it had alot of other features that I didn't want, such as websocket/http decoding, tcp session tracking etc. I just wanted something light and minimal. This library hardly returns any "human readable translations" of packets, except for ARP. This code just parses raw protocol headers, listening on as many interfaces and unique filter strings as you want.
 
-Anyway, big thanks to the node.js community. Coming from a C/asm background i'd never in a million years thought i'd be writing code in JS, but damn do I love it.
+Anyway, big thanks to the node.js community & mranney for his node_pcap module. Coming from a C/asm background i'd never in a million years thought i'd be writing code in JS, but damn do I love it.
 
 Ok so using pcapjs is very simple (test_all.js):
 
