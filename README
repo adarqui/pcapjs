@@ -4,6 +4,12 @@ pcapjs is a node.js pcap module which uses libuv for eventing i/o. I've used nod
 
 Anyway, big thanks to the node.js community & mranney for his node_pcap module. Coming from a C/asm background i'd never in a million years have thought i'd be writing code in JS, but damn do I love it.
 
+
+Building this module with node-gyp:
+
+node-gyp configure build
+
+
 Ok so using pcapjs is very simple (test_all.js):
 
 /* Just sniffs on every interface */
