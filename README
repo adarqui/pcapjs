@@ -1,0 +1,950 @@
+https://github.com/adarqui/pcapjs
+
+pcapjs is a node.js pcap module which uses libuv for eventing i/o. I've used node_pcap (https://github.com/mranney/node_pcap) by mranney in a few of my projects. Due to the fact that node.js phased out IOWatcher and node_pcap didn't support multiple pcap sessions, I wrote this. Why not fork node_pcap? Well, it had alot of other features that I didn't want, such as websocket/http decoding, tcp session tracking etc. I just wanted something light and minimal. This library hardly returns any "human readable translations" of packets, except for ARP. This code just parses raw protocol headers, listening on as many interfaces and unique filter strings as you want.
+
+Anyway, big thanks to the node.js community. Coming from a C/asm background i'd never in a million years thought i'd be writing code in JS, but damn do I love it.
+
+Ok so using pcapjs is very simple (test_all.js):
+
+/* Just sniffs on every interface */
+pcap    = require('./pcapjs');
+os      = require('os');
+
+        var intfs = os.networkInterfaces();
+        for(var v in intfs) {
+                console.log("interface:", v);
+                var intf = intfs[v];
+                intf.p = new pcap.create(v, "icmp or icmp6 or arp", 1, 1000);
+
+                intf.p.on('pkt', function(res) {
+                        res.pkt = new Buffer(res.pkt);
+                        var dec = pcap.decode.packet(res);
+                        console.log("DECODED:", dec);
+                });
+        }
+
+        console.log("knowd.");
+
+
+
+Simple enough.. Each new object returned by pcap.create gets it's own EventEmitter. So just listen.on('pkt'..) and then decode the packets. The initial decode is just enough to fill the object. You can use dec.path to figure out the exact path the decoding system took. Then just plug each path into dec[...] and you have your protocol fields.
+
+Also check out test_cap.js
+
+Ok well, as usual, I didn't finish this "entirely".. I have SEVERE coder ADHD. I'll probably start working on it again once I modify iptrafdjs to use this pcapjs module since the node_pcap module isn't working in my latest version of node.
+
+Here's a quick glimpse of the output of test_all.js. As you can see it contains ethernet headers, arp, ip4, ip6, icmp, icmp6, and vlan tags:
+
+interfaces: lo
+interfaces: eth0
+interfaces: eth2
+interfaces: eth3
+interfaces: eth2.0
+interfaces: eth2.400
+interfaces: eth3.500
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 352,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25186,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 353,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25185,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 354,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25184,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth0', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 84,
+     id: 0,
+     flags: { df: 1, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 26725,
+     saddr: '192.168.1.140',
+     daddr: '8.8.8.8' },
+  icmp: { type: 8, code: 0, cksum: 28813, id: 22394, seq: 1 },
+  ehdr: 
+   { dst: 'c8:d7:19:87:f5:e9',
+     src: '08:00:27:60:67:ea',
+     type: 2048 } }
+DECODED: { path: [ 'eth0', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 84,
+     id: 0,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 47,
+     proto: 1,
+     cksum: 47429,
+     saddr: '8.8.8.8',
+     daddr: '192.168.1.140' },
+  icmp: { type: 0, code: 0, cksum: 30861, id: 22394, seq: 1 },
+  ehdr: 
+   { dst: '08:00:27:60:67:ea',
+     src: 'c8:d7:19:87:f5:e9',
+     type: 2048 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth0', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 84,
+     id: 0,
+     flags: { df: 1, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 26725,
+     saddr: '192.168.1.140',
+     daddr: '8.8.8.8' },
+  icmp: { type: 8, code: 0, cksum: 646, id: 22394, seq: 2 },
+  ehdr: 
+   { dst: 'c8:d7:19:87:f5:e9',
+     src: '08:00:27:60:67:ea',
+     type: 2048 } }
+DECODED: { path: [ 'eth0', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 84,
+     id: 0,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 47,
+     proto: 1,
+     cksum: 47429,
+     saddr: '8.8.8.8',
+     daddr: '192.168.1.140' },
+  icmp: { type: 0, code: 0, cksum: 2694, id: 22394, seq: 2 },
+  ehdr: 
+   { dst: '08:00:27:60:67:ea',
+     src: 'c8:d7:19:87:f5:e9',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 355,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25183,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 356,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25182,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 357,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25181,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv6', 'icmpv6' ],
+  ipv6: 
+   { version: 6,
+     traf_class: 0,
+     flow_label: 0,
+     payload_len: 64,
+     next_header: 58,
+     hop_limit: 64,
+     saddr: '::1',
+     daddr: '::1',
+     hdr_tot: 40 },
+  icmpv6: { type: 128, code: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 34525 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv6', 'icmpv6' ],
+  ipv6: 
+   { version: 6,
+     traf_class: 0,
+     flow_label: 0,
+     payload_len: 64,
+     next_header: 58,
+     hop_limit: 64,
+     saddr: '::1',
+     daddr: '::1',
+     hdr_tot: 40 },
+  icmpv6: { type: 129, code: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 34525 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv6', 'icmpv6' ],
+  ipv6: 
+   { version: 6,
+     traf_class: 0,
+     flow_label: 0,
+     payload_len: 64,
+     next_header: 58,
+     hop_limit: 64,
+     saddr: '::1',
+     daddr: '::1',
+     hdr_tot: 40 },
+  icmpv6: { type: 128, code: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 34525 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv6', 'icmpv6' ],
+  ipv6: 
+   { version: 6,
+     traf_class: 0,
+     flow_label: 0,
+     payload_len: 64,
+     next_header: 58,
+     hop_limit: 64,
+     saddr: '::1',
+     daddr: '::1',
+     hdr_tot: 40 },
+  icmpv6: { type: 129, code: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 34525 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 358,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25180,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 359,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25179,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 360,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25178,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 361,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25177,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 362,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25176,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'lo', 'ethernet', 'ipv4', 'icmp' ],
+  ipv4: 
+   { version: 4,
+     header_len: 5,
+     header_tot: 20,
+     total_len: 112,
+     id: 363,
+     flags: { df: 0, mf: 0, reserved: 0 },
+     frag_off: 0,
+     ttl: 64,
+     proto: 1,
+     cksum: 25175,
+     saddr: '10.5.1.1',
+     daddr: '10.5.1.1' },
+  icmp: { type: 3, code: 1, cksum: 64766, id: 0, seq: 0 },
+  ehdr: 
+   { dst: '00:00:00:00:00:00',
+     src: '00:00:00:00:00:00',
+     type: 2048 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+DECODED: { path: [ 'eth3.500', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054 } }
+DECODED: { path: [ 'eth3', 'ethernet', 'arp' ],
+  arp: 
+   { htype: 1,
+     ptype: 2048,
+     hlen: 6,
+     plen: 4,
+     op: 1,
+     op_desc: 'who-has',
+     sha: '08:00:27:4b:74:32',
+     spa: '10.5.1.1',
+     tha: '00:00:00:00:00:00',
+     tpa: '1.1.1.1' },
+  ehdr: 
+   { dst: 'ff:ff:ff:ff:ff:ff',
+     src: '08:00:27:4b:74:32',
+     type: 2054,
+     vlan: 500 } }
+
+
+
+
+
+-- adarqui (adarq.org && github.com/adarqui);
